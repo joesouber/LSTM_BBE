@@ -1,0 +1,27 @@
+
+#!/bin/bash
+
+# Define the script and the base directory
+SCRIPT="TBBE.py"
+BASE_DIR="/Volumes/Seagate/DeepBettor"
+
+# Function to run the script for a given directory
+run_script() {
+    DIR=$1
+    cd $BASE_DIR/$DIR/TBBE_OD_XGboost/Application || { echo "Directory $BASE_DIR/$DIR/TBBE_OD_XGboost/Application does not exist."; exit 1; }
+    python3 $SCRIPT &
+}
+
+# Run the script for each core directory
+run_script "Core1"
+run_script "Core2"
+run_script "Core3"
+run_script "Core4"
+run_script "Core5"
+run_script "Core6"
+# Add more cores if necessary
+run_script "Core7"
+run_script "Core8"
+# Wait for all background processes to finish
+wait
+
