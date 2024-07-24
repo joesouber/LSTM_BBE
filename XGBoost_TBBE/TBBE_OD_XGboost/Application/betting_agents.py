@@ -863,7 +863,7 @@ class XGBoostBettingAgent(BettingAgent):
 
         return None
 
-####LSTM Agent#####
+####LSTM Agent with odds#####
 import logging
 import pandas as pd
 from xgboost import DMatrix
@@ -1135,3 +1135,155 @@ class LSTMBettingAgent(BettingAgent):
 #                            logging.info(f"Placed lay order: {order}")
 #
 #        return None
+
+
+######################################################
+###########LSTM agent with alignment##################
+######################################################
+
+
+
+# import logging
+# import pandas as pd
+# from keras.models import load_model
+# import joblib
+# from message_protocols import Order
+# from system_constants import MIN_ODDS
+
+
+# class LSTMBettingAgent(BettingAgent):
+#     def __init__(self, id, name, lengthOfRace, endOfInPlayBettingPeriod, influenced_by_opinions,
+#                  local_opinion, uncertainty, lower_op_bound, upper_op_bound):
+#         super().__init__(id, name, lengthOfRace, endOfInPlayBettingPeriod, influenced_by_opinions,
+#                          local_opinion, uncertainty, lower_op_bound, upper_op_bound)
+#         self.lstm_loaded_model = load_model('/content/trained_lstm_model_aligntest.h5')
+#         logging.info("LSTM model loaded successfully.")
+        
+#         self.scaler = joblib.load('/content/allignscalertest.pkl')
+#         logging.info("Scaler loaded successfully.")
+
+#         self.bettingInterval = 2
+#         self.bettingTime = random.randint(5, 15)
+#         self.name = 'LSTMBettingAgent'
+#         self.bets_placed = 0  # Initialize a counter for bets placed
+
+#     def getorder(self, time, markets):
+#         order = None
+#         if len(self.orders) > 0:
+#             order = self.orders.pop()
+#         return order
+
+#     def make_decision(self, time, stake, distance, rank, alignment):
+#         try:
+#             # Prepare features with all expected columns
+#             df = pd.DataFrame({
+
+#                 'time': [time],
+
+#                 'stake': [stake],
+#                 'distance': [distance],
+#                 'rank': [rank],
+#                 'alignment': [alignment],  # include alignment
+  
+#             })
+            
+#             # Scale the input data
+#             scaled_data = self.scaler.transform(df)
+            
+#             # Select only the relevant features for the LSTM model
+#             scaled_data = scaled_data[:, [df.columns.get_loc('time'),
+#                                           df.columns.get_loc('stake'),
+#                                           df.columns.get_loc('distance'),
+#                                           df.columns.get_loc('rank'),
+#                                           df.columns.get_loc('alignment')]]  # include alignment
+            
+#             # Reshape for LSTM model input
+#             X_scaled = scaled_data.reshape((scaled_data.shape[0], 1, scaled_data.shape[1]))
+            
+#             # Make a prediction using the LSTM model
+#             prediction = self.lstm_loaded_model.predict(X_scaled)[0][0]
+#             decision = 1 if prediction > 0.5 else 0
+            
+#             logging.info(f"make_decision - time: {time}, stake: {stake}, distance: {distance}, rank: {rank}, alignment: {alignment}, decision: {decision}, prediction: {prediction}")
+#             return decision
+#         except Exception as e:
+#             logging.error(f"Error making decision: {e}")
+#             raise e
+
+#     def respond(self, time, markets, trade, competitors, agent_distances):
+#         try:
+#             if self.bettingPeriod == False:
+#                 logging.info("Betting period is over")
+#                 return None
+#             order = None
+#             if self.raceStarted == False:
+#                 logging.info("Race has not started")
+#                 return order
+
+#             if self.bettingTime <= self.raceTimestep and self.raceTimestep % self.bettingInterval == 0:
+#                 sortedComps = sorted((self.currentRaceState.items()), key=operator.itemgetter(1))
+
+#                 for rank, (competitor_id, distance) in enumerate(sortedComps):
+#                     # Extract distance and rank using the similar logic as getXGboostTrainData
+#                     epsilon = 1e-1
+#                     mask = (agent_distances['competitor'] == competitor_id) & (abs(agent_distances['time'] - time) < epsilon)
+#                     filtered_df = agent_distances[mask]
+#                     distance = filtered_df['distance'].values[0] if len(filtered_df) > 0 else 0
+#                     rank = filtered_df['rank'].values[0] if len(filtered_df) > 0 else 0
+
+#                     # Retrieve the alignment score for the current competitor
+#                     competitor = next(comp for comp in competitors if comp.id == competitor_id)
+#                     alignment = competitor.alignment
+
+#                     decision = self.make_decision(time, 15, distance, rank + 1, alignment)
+#                     if decision == 1:  # Decision = back
+#                         if markets[self.exchange][competitor_id]['backs']['n'] > 0:
+#                             quoteodds = max(MIN_ODDS, markets[self.exchange][competitor_id]['backs']['best'] - 0.1)
+#                         else:
+#                             quoteodds = markets[self.exchange][competitor_id]['backs']['worst']
+
+#                         order = Order(self.exchange, self.id, competitor_id, 'Back', quoteodds,
+#                                       random.randint(self.stakeLower, self.stakeHigher),
+#                                       markets[self.exchange][competitor_id]['QID'], time)
+
+#                         if order.direction == 'Back':
+#                             liability = self.amountFromOrders + order.stake
+#                             if liability > self.balance:
+#                                 logging.info(f"Insufficient balance for back bet: balance={self.balance}, liability={liability}")
+#                                 continue
+#                             else:
+#                                 self.orders.append(order)
+#                                 self.amountFromOrders = liability
+#                                 self.bets_placed += 1
+#                                 logging.info(f"Placed back order: {order}")
+
+#                     elif decision == 0:  # Decision = lay
+#                         if markets[self.exchange][competitor_id]['lays']['n'] > 0:
+#                             quoteodds = markets[self.exchange][competitor_id]['lays']['best'] + 0.1
+#                         else:
+#                             quoteodds = markets[self.exchange][competitor_id]['lays']['worst']
+
+#                         order = Order(self.exchange, self.id, competitor_id, 'Lay', quoteodds,
+#                                       random.randint(self.stakeLower, self.stakeHigher),
+#                                       markets[self.exchange][competitor_id]['QID'], time)
+
+#                         if order.direction == 'Lay':
+#                             liability = self.amountFromOrders + ((order.stake * order.odds) - order.stake)
+#                             if liability > self.balance:
+#                                 logging.info(f"Insufficient balance for lay bet: balance={self.balance}, liability={liability}")
+#                                 continue
+#                             else:
+#                                 self.orders.append(order)
+#                                 self.amountFromOrders = liability
+#                                 self.bets_placed += 1
+#                                 logging.info(f"Placed lay order: {order}")
+
+#             logging.info(f"End of respond method - Bets placed: {self.bets_placed}")
+
+#         except Exception as e:
+#             logging.error(f"Error in respond method: {e}")
+#             raise e
+
+#     def end_session(self):
+#         logging.info(f"Session ended - Total bets placed: {self.bets_placed}, Final balance: {self.balance}")
+

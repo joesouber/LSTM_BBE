@@ -437,3 +437,337 @@ if __name__ == "__main__":
     end = time.time()
     print('Time taken: ', end - start)
 
+
+############################################################################################################
+###########If i want alignment LSTM to work need to comment all above an uncomment all below :/#############
+############################################################################################################
+
+
+# import logging
+
+# # Configure logging to a file
+# logging.basicConfig(
+#     filename='lstm_betting_agent.log',
+#     level=logging.INFO,
+#     format='%(asctime)s - %(levelname)s - %(message)s'
+# )
+# import sys, math, threading, time, queue, random, csv, config, pandas
+# from copy import deepcopy
+
+# from system_constants import *
+# from betting_agents import *
+# import numpy as np
+# from race_simulator import Simulator
+# from ex_ante_odds_generator import *
+# from exchange import Exchange
+# from message_protocols import *
+# from session_stats import *
+# from ODmodels import *
+
+
+# class Session:
+#     def __init__(self):
+#         # Initialise exchanges
+#         self.exchanges = {}
+#         self.exchangeOrderQs = {}
+#         self.exchangeThreads = []
+
+#         # Initialise betting agents
+#         self.bettingAgents = {}
+#         self.bettingAgentQs = {}
+#         self.bettingAgentThreads = []
+
+#         self.OpinionDynamicsPlatform = None
+
+#         # Needed attributes
+#         self.startTime = None
+#         self.numberOfTimesteps = None
+#         self.lengthOfRace = None
+#         self.event = threading.Event()
+#         self.endOfInPlayBettingPeriod = None
+#         self.winningCompetitor = None
+#         self.distances = None
+
+#         # Record keeping attributes
+#         self.tape = []
+#         self.priceRecord = {}
+#         self.spreads = {}
+#         self.opinion_hist = {'id': [], 'time': [], 'opinion': [], 'competitor': []}
+#         self.opinion_hist_l = {'id': [], 'time': [], 'opinion': [], 'competitor': []}
+#         self.opinion_hist_e = {'id': [], 'time': [], 'opinion': [], 'competitor': []}
+#         self.opinion_hist_g = {'id': [], 'time': [], 'opinion': [], 'competitor': []}
+#         self.opinion_hist_s = {'id': [], 'time': [], 'opinion': [], 'competitor': []}
+#         self.competitor_odds = {'time': [], 'odds': [], 'competitor': []}
+#         self.competitor_distances = {'time': [], 'distance': [], 'competitor': []}
+
+#         self.generateRaceData()
+#         self.initialiseThreads()
+
+#     def exchangeLogic(self, exchange, exchangeOrderQ):
+#         self.event.wait()
+#         competitor_odds = {'time': [], 'odds': [], 'competitor': []}
+
+#         while self.event.isSet():
+#             timeInEvent = (time.time() - self.startTime) / SESSION_SPEED_MULTIPLIER
+#             try:
+#                 order = exchangeOrderQ.get(block=False)
+#             except:
+#                 continue
+
+#             marketUpdates = {}
+#             for i in range(NUM_OF_EXCHANGES):
+#                 marketUpdates[i] = self.exchanges[i].publishMarketState(timeInEvent)
+
+#             if timeInEvent < self.endOfInPlayBettingPeriod:
+#                 self.OpinionDynamicsPlatform.initiate_conversations(timeInEvent)
+#                 self.OpinionDynamicsPlatform.update_opinions(timeInEvent, marketUpdates)
+#             else:
+#                 self.OpinionDynamicsPlatform.settle_opinions(self.winningCompetitor)
+
+#             (transactions, markets) = exchange.processOrder(timeInEvent, order)
+
+#             if transactions is not None:
+#                 for id, q in self.bettingAgentQs.items():
+#                     update = exchangeUpdate(transactions, order, markets)
+#                     q.put(update)
+
+#     def agentLogic(self, agent, agentQ):
+#             """
+#             Logic for betting agent threads
+#             """
+#             self.event.wait()
+#             while self.event.isSet():
+#                 time.sleep(0.01)
+#                 timeInEvent = (time.time() - self.startTime) / SESSION_SPEED_MULTIPLIER
+#                 order = None
+#                 trade = None
+
+#                 while agentQ.empty() is False:
+#                     qItem = agentQ.get(block=False)
+#                     if qItem.protocolNum == EXCHANGE_UPDATE_MSG_NUM:
+#                         for transaction in qItem.transactions:
+#                             if transaction['backer'] == agent.id: agent.bookkeep(transaction, 'Backer', qItem.order, timeInEvent)
+#                             if transaction['layer'] == agent.id: agent.bookkeep(transaction, 'Layer', qItem.order, timeInEvent)
+#                     elif qItem.protocolNum == RACE_UPDATE_MSG_NUM:
+#                         agent.observeRaceState(qItem.timestep, qItem.compDistances)
+#                     else:
+#                         print("INVALID MESSAGE")
+
+#                 marketUpdates = {}
+#                 for i in range(NUM_OF_EXCHANGES):
+#                     marketUpdates[i] = self.exchanges[i].publishMarketState(timeInEvent)
+
+#                 agent_distances_df = pd.DataFrame.from_dict(self.competitor_distances)
+
+#                 # Check the agent type before calling the respond method
+#                 if isinstance(agent, LSTMBettingAgent):
+#                     agent.respond(timeInEvent, marketUpdates, trade, self.competitors, agent_distances_df)
+#                 else:
+#                     agent.respond(timeInEvent, marketUpdates, trade)
+
+#                 order = agent.getorder(timeInEvent, marketUpdates)
+
+#                 if order is not None:
+#                     if TBBE_VERBOSE:
+#                         print(order)
+#                     agent.numOfBets += 1
+#                     self.exchangeOrderQs[order.exchange].put(order)
+
+#             return 0
+
+#     def populateMarket(self):
+#         def initAgent(name, quantity, id):
+#             uncertainty = 1.0
+#             local_opinion = 1 / NUM_OF_COMPETITORS
+
+#             if name == 'Agent_Opinionated_Random':
+#                 return Agent_Opinionated_Random(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'Agent_Opinionated_Leader_Wins':
+#                 return Agent_Opinionated_Leader_Wins(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'Agent_Opinionated_Underdog':
+#                 return Agent_Opinionated_Underdog(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == "Agent_Opinionated_Back_Favourite":
+#                 return Agent_Opinionated_Back_Favourite(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'Agent_Opinionated_Linex':
+#                 return Agent_Opinionated_Linex(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'Agent_Opinionated_Priviledged':
+#                 return Agent_Opinionated_Priviledged(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 1, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'XGBoostBettingAgent':
+#                 return XGBoostBettingAgent(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+#             if name == 'LSTMBettingAgent':
+#                 return LSTMBettingAgent(id, name, self.lengthOfRace, self.endOfInPlayBettingPeriod, 0, local_opinion, uncertainty, MIN_OP, MAX_OP)
+
+#         id = 0
+#         for agent in config.agents:
+#             type = agent[0]
+#             for i in range(agent[1]):
+#                 self.bettingAgents[id] = initAgent(agent[0], agent[1], id)
+#                 id += 1
+
+#     def initialiseExchanges(self):
+#         for i in range(NUM_OF_EXCHANGES):
+#             self.exchanges[i] = Exchange(i, NUM_OF_COMPETITORS)
+#             self.exchangeOrderQs[i] = queue.Queue()
+
+#     def initialiseBettingAgents(self):
+#         self.populateMarket()
+#         self.OpinionDynamicsPlatform = OpinionDynamicsPlatform(list(self.bettingAgents.values()), MODEL_NAME)
+#         print("initializing")
+#         for id, agent in self.bettingAgents.items():
+#             self.bettingAgentQs[id] = queue.Queue()
+#             thread = threading.Thread(target=self.agentLogic, args=[agent, self.bettingAgentQs[id]])
+#             self.bettingAgentThreads.append(thread)
+
+#     def updateRaceQ(self, timestep):
+#         with open(RACE_DATA_FILENAME, 'r') as file:
+#             reader = csv.reader(file)
+#             r = [row for index, row in enumerate(reader) if index == timestep]
+#         time = r[0][0]
+#         compDistances = {c: float(r[0][c + 1]) for c in range(NUM_OF_COMPETITORS)}
+#         update = raceUpdate(time, compDistances)
+
+#         for id, q in self.bettingAgentQs.items():
+#             q.put(update)
+
+#     def preRaceBetPeriod(self):
+#         print("Start of pre-race betting period, lasting " + str(PRE_RACE_BETTING_PERIOD_LENGTH))
+#         time.sleep(PRE_RACE_BETTING_PERIOD_LENGTH / SESSION_SPEED_MULTIPLIER)
+#         print("End of pre-race betting period")
+
+#     def eventSession(self, simulationId):
+#         self.startTime = time.time()
+
+#         for id, exchange in self.exchanges.items():
+#             thread = threading.Thread(target=self.exchangeLogic, args=[exchange, self.exchangeOrderQs[id]])
+#             self.exchangeThreads.append(thread)
+
+#         for thread in self.exchangeThreads:
+#             thread.start()
+
+#         for thread in self.bettingAgentThreads:
+#             thread.start()
+
+#         self.event.set()
+
+#         time.sleep(0.01)
+
+#         self.preRaceBetPeriod()
+
+#         i = 0
+#         while i < self.numberOfTimesteps:
+#             self.updateRaceQ(i + 1)
+#             i += 1
+#             if TBBE_VERBOSE:
+#                 print(i)
+#             print(i)
+#             time.sleep(1 / SESSION_SPEED_MULTIPLIER)
+
+#         self.event.clear()
+
+#         for thread in self.exchangeThreads:
+#             thread.join()
+#         for thread in self.bettingAgentThreads:
+#             thread.join()
+
+#         print("Simulation complete")
+#         print("Writing data....")
+
+#         for id, ex in self.exchanges.items():
+#             for orderbook in ex.compOrderbooks:
+#                 for trade in orderbook.tape:
+#                     self.tape.append(trade)
+
+#         for id, ex in self.exchanges.items():
+#             ex.settleUp(self.bettingAgents, self.winningCompetitor)
+
+#         for id, agent in self.bettingAgents.items():
+#             print("Agent " + str(id) + "'s final balance: " + str(agent.balance) + " : " + str(agent.name))
+
+#         createstats(self.bettingAgents, simulationId, self.tape, self.priceRecord, self.spreads, self.competitor_distances, self.competitors)
+
+#     def initialiseThreads(self):
+#         self.initialiseExchanges()
+#         self.initialiseBettingAgents()
+
+#     def generateRaceData(self):
+#         race = Simulator(NUM_OF_COMPETITORS)
+#         compPool = deepcopy(race.competitors)
+#         raceAttributes = deepcopy(race.race_attributes)
+
+#         self.competitors = compPool
+#         self.race_attributes = raceAttributes.race_attributes_dict
+
+#         for competitor in compPool:
+#             competitor.alignment = competitor.calculateAlignment()
+
+#         createExAnteOdds(compPool, raceAttributes)
+
+#         race.run("core")
+
+#         self.numberOfTimesteps = race.numberOfTimesteps
+#         self.lengthOfRace = race.race_attributes.length
+#         self.winningCompetitor = race.winner
+#         self.distances = race.raceData
+#         self.endOfInPlayBettingPeriod = race.winningTimestep - IN_PLAY_CUT_OFF_PERIOD
+
+#         createInPlayOdds(self.numberOfTimesteps)
+
+
+# class BBE(Session):
+#     def __init__(self):
+#         self.session = None
+#         return
+
+#     def runSession(self, argFunc=None):
+#         currentSimulation = 0
+
+#         while currentSimulation < NUM_OF_SIMS:
+#             simulationId = "Simulation: " + str(currentSimulation)
+#             self.session = Session()
+#             if argFunc:
+#                 argFunc(self.session)
+#             self.session.eventSession(currentSimulation)
+
+#             for agent_id, agent in self.session.bettingAgents.items():
+#                 if isinstance(agent, LSTMBettingAgent):
+#                     agent.session = self.session
+
+#             agent_distances_df = pd.DataFrame.from_dict(self.session.competitor_distances)
+#             getXGboostTrainData(self.session.tape, currentSimulation, self.session.bettingAgents, agent_distances_df, self.session.competitors)
+
+#             currentSimulation += 1
+
+#         opinion_hist_df = pandas.DataFrame.from_dict(self.session.opinion_hist)
+#         opinion_hist_df.to_csv('opinions.csv', index=False)
+
+#         opinion_hist_df_l = pandas.DataFrame.from_dict(self.session.opinion_hist_l)
+#         opinion_hist_df_l.to_csv('opinions_l.csv', index=False)
+
+#         opinion_hist_df_g = pandas.DataFrame.from_dict(self.session.opinion_hist_g)
+#         opinion_hist_df_g.to_csv('opinions_g.csv', index=False)
+
+#         opinion_hist_df_e = pandas.DataFrame.from_dict(self.session.opinion_hist_e)
+#         opinion_hist_df_e.to_csv('opinions_e.csv', index=False)
+
+#         competitor_odds_df = pandas.DataFrame.from_dict(self.session.competitor_odds)
+#         competitor_odds_df.to_csv('competitor_odds.csv', index=False)
+
+#         competitor_distances_df = pandas.DataFrame.from_dict(self.session.competitor_distances)
+#         competitor_distances_df.to_csv('competitor_distances.csv', index=False)
+
+#         opinion_hist_s_df = pandas.DataFrame.from_dict(self.session.opinion_hist_s)
+#         opinion_hist_s_df.to_csv('opinion_hist_s.csv', index=False)
+
+#         print_log()
+
+# if __name__ == "__main__":
+#     import time
+
+#     start = time.time()
+#     print('Running')
+#     bbe = BBE()
+#     print('Running')
+#     bbe.runSession()
+#     end = time.time()
+#     print('Time taken: ', end - start)
+
