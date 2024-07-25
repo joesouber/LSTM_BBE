@@ -3,12 +3,12 @@
 
 # Define the script and the base directory
 SCRIPT="TBBE.py"
-BASE_DIR="/Volumes/Seagate/DeepBettor"
+BASE_DIR="/home/ubuntu/LSTM_BBE"
 
 # Function to run the script for a given directory
 run_script() {
     DIR=$1
-    cd $BASE_DIR/$DIR/TBBE_OD_XGboost/Application || { echo "Directory $BASE_DIR/$DIR/TBBE_OD_XGboost/Application does not exist."; exit 1; }
+    cd $BASE_DIR/$DIR/XGBoost_TBBE/TBBE_OD_XGboost/Application || { echo "Directory $BASE_DIR/$DIR/TBBE_OD_XGboost/Application does not exist."; exit 1; }
     python3 $SCRIPT &
 }
 
