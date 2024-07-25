@@ -445,12 +445,7 @@
 
 import logging
 
-# Configure logging to a file
-logging.basicConfig(
-    filename='lstm_betting_agent.log',
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
+
 import sys, math, threading, time, queue, random, csv, config, pandas
 from copy import deepcopy
 
@@ -758,7 +753,7 @@ class BBE(Session):
         opinion_hist_s_df = pandas.DataFrame.from_dict(self.session.opinion_hist_s)
         opinion_hist_s_df.to_csv('opinion_hist_s.csv', index=False)
 
-        print_log()
+
 
 if __name__ == "__main__":
     import time
