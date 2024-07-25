@@ -782,7 +782,7 @@ class XGBoostBettingAgent(BettingAgent):
         super().__init__(id, name, lengthOfRace, endOfInPlayBettingPeriod, influenced_by_opinions,
                          local_opinion, uncertainty, lower_op_bound, upper_op_bound)
         self.xgb_loaded_model = xgb.Booster()
-        self.xgb_loaded_model.load_model('/content/XGBoost_TBBE/TBBE_OD_XGboost/Application/trained_xgboost_model.json')  # the trained XGBoost model
+        self.xgb_loaded_model.load_model('/home/ubuntu/LSTM_BBE/XGBoost_TBBE/TBBE_OD_XGboost/Application/trained_xgboost_model.json')  # the trained XGBoost model
         self.bettingInterval = 2  
         self.bettingTime = random.randint(5, 15)
         self.name = 'XGBoostBettingAgent'
@@ -881,7 +881,7 @@ import operator
 from message_protocols import Order
 
 # Set up logging to a file
-logging.basicConfig(filename='/content/XGBoost_TBBE/TBBE_OD_XGboost/Application/lstm_betting_agent.log', level=logging.INFO,
+logging.basicConfig(filename='/home/ubuntu/LSTM_BBE/XGBoost_TBBE/TBBE_OD_XGboost/Application/lstm_betting_agent.log', level=logging.INFO,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 class LSTMBettingAgent(BettingAgent):
