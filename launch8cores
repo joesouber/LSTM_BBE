@@ -18,10 +18,10 @@ run_script "Core2"
 run_script "Core3"
 run_script "Core4"
 run_script "Core5"
-run_script "Core6"
+#run_script "Core6"
 # Add more cores if necessary
-run_script "Core7"
-run_script "Core8"
+#run_script "Core7"
+#run_script "Core8"
 # Wait for all background processes to finish
 wait
 
