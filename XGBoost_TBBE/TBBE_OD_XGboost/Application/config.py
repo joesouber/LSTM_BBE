@@ -31,7 +31,7 @@ agents = [
           ('Agent_Opinionated_Linex', 10),
           ('Agent_Opinionated_Priviledged', 5),
           ('XGBoostBettingAgent', 5)
-          #('LSTMBettingAgent', 5)
+          ('LSTMBettingAgent', 5)
           ]
 
 # agents = [
