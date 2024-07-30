@@ -5,6 +5,6 @@ rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=C
 rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core3/
 rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core4/
 rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core5/
-rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core6/
-rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core7/
-rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core8/
+# rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core6/
+# rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core7/
+# rsync -av --progress --exclude=Core1 --exclude=Core2 --exclude=Core3 --exclude=Core4 --exclude=Core5 --exclude=Core6 --exclude=Core7 --exclude=Core8 . Core8/
