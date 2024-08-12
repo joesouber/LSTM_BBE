@@ -782,10 +782,11 @@ class XGBoostBettingAgent(BettingAgent):
         super().__init__(id, name, lengthOfRace, endOfInPlayBettingPeriod, influenced_by_opinions,
                          local_opinion, uncertainty, lower_op_bound, upper_op_bound)
         self.xgb_loaded_model = xgb.Booster()
-        self.xgb_loaded_model.load_model('/home/ubuntu/LSTM_BBE/XGBoost_TBBE/TBBE_OD_XGboost/Application/trained_xgboost_model.json')  # the trained XGBoost model
+        self.xgb_loaded_model.load_model('/content/LSTM_BBE/XGBoost_TBBE/TBBE_OD_XGboost/Application/trained_xgboost_model.json')  # the trained XGBoost model
         self.bettingInterval = 2  
         self.bettingTime = random.randint(5, 15)
         self.name = 'XGBoostBettingAgent'
+        self.prediction_scores = []  # List to store prediction scores
 
     def getorder(self, time, markets):
         order = None
@@ -804,11 +805,16 @@ class XGBoostBettingAgent(BettingAgent):
         dmatrix_data = DMatrix(df)
         #print(df)
         prediction = self.xgb_loaded_model.predict(dmatrix_data)[0]  # get the first prediction value
+        self.prediction_scores.append(prediction)  # Store the prediction score
         decision = 1 if prediction > 0.5 else 0
         if decision == 1:
             print("decision >>> ", decision)
         return decision
-
+    
+    # Add a method to retrieve the prediction score distribution
+    def get_prediction_scores(self):
+        return self.prediction_scores
+        
     # def make_decision(self, features):
     #     """Make a decision (bet/lay) based on the XGBoost model's prediction."""
     #     prediction = self.xgb_loaded_model.predict([features])
