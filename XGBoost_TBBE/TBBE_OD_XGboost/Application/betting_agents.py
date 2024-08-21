@@ -1508,71 +1508,224 @@ class LSTMBettingAgent(BettingAgent):
         return self.prediction_scores
 
 
-    def respond(self, time, markets, trade, competitors, agent_distances):
-        try:
-            if self.bettingPeriod == False:
-                return None
-            order = None
-            if self.raceStarted == False:
-                return order
+def respond(self, time, markets, trade, competitors, agent_distances):
+    """
+    Define a method named `respond` which takes the following parameters:
+    - `self`: the instance of the class this method belongs to.
+    - `time`: the current time in the race or simulation.
+    - `markets`: a dictionary representing the current state of the betting markets.
+    - `trade`: additional trading information (not used in this function).
+    - `competitors`: a list of competitor objects.
+    - `agent_distances`: a DataFrame containing the distances and ranks of competitors at different time points.
+    """
 
-            if self.bettingTime <= self.raceTimestep and self.raceTimestep % self.bettingInterval == 0:
-                sortedComps = sorted((self.currentRaceState.items()), key=operator.itemgetter(1))
+    try:
+        if self.bettingPeriod == False:
+            """
+            If the betting period is over (self.bettingPeriod is False),
+            the method returns `None`, indicating no action is taken.
+            """
+            return None
+        
+        order = None
+        """
+        Initialize the `order` variable to `None`, which will store any new order created.
+        """
 
-                for rank, (competitor_id, distance) in enumerate(sortedComps):
-                    # Extract distance and rank using the similar logic as getXGboostTrainData
-                    epsilon = 1e-1
-                    mask = (agent_distances['competitor'] == competitor_id) & (abs(agent_distances['time'] - time) < epsilon)
-                    filtered_df = agent_distances[mask]
-                    distance = filtered_df['distance'].values[0] if len(filtered_df) > 0 else 0
-                    rank = filtered_df['rank'].values[0] if len(filtered_df) > 0 else 0
+        if self.raceStarted == False:
+            """
+            If the race has not started (`self.raceStarted` is False),
+            the method returns the `order` (which is currently `None`).
+            """
+            return order
 
-                    # Retrieve the alignment score for the current competitor
-                    competitor = next(comp for comp in competitors if comp.id == competitor_id)
-                    alignment = competitor.alignment
+        if self.bettingTime <= self.raceTimestep and self.raceTimestep % self.bettingInterval == 0:
+            """
+            Check if the current race timestep is within the allowed betting time
+            and if the timestep is at a betting interval.
+            If true, continue with the function logic.
+            """
+            sortedComps = sorted((self.currentRaceState.items()), key=operator.itemgetter(1))
+            """
+            Sort the current race state (stored as a dictionary) by the competitor distances.
+            `sortedComps` is a list of tuples with competitor IDs and their corresponding distances.
+            """
 
-                    # Fetching odds from the market state
-                    odds = markets[self.exchange][competitor_id]['backs']['best'] if markets[self.exchange][competitor_id]['backs']['n'] > 0 else markets[self.exchange][competitor_id]['backs']['worst']
+            for rank, (competitor_id, distance) in enumerate(sortedComps):
+                """
+                Iterate over the sorted competitors.
+                `rank` is the competitor's rank (starting from 0).
+                `competitor_id` is the ID of the competitor, and `distance` is the competitor's distance.
+                """
+                
+                epsilon = 1e-1
+                """
+                Define a small value `epsilon` to help filter data within a small time range.
+                """
 
-                    decision = self.make_decision(time, 15, distance, rank + 1, odds, alignment)
-                    if decision == 1:  # Decision = back
-                        if markets[self.exchange][competitor_id]['backs']['n'] > 0:
-                            quoteodds = max(MIN_ODDS, markets[self.exchange][competitor_id]['backs']['best'] - 0.1)
+                mask = (agent_distances['competitor'] == competitor_id) & (abs(agent_distances['time'] - time) < epsilon)
+                """
+                Create a boolean mask that filters the `agent_distances` DataFrame
+                to match the current competitor and the closest time point to `time`.
+                """
+
+                filtered_df = agent_distances[mask]
+                """
+                Apply the mask to filter the `agent_distances` DataFrame for the current competitor.
+                """
+
+"""
+Purpose of the boolean mask I have introduced is it selects only the rows where both conditions are True — that is, the rows where the competitor ID matches the current competitor_id, and the time is very close to the given time.
+
+This filtered DataFrame (filtered_df) is then used to extract specific values, such as the competitor's distance and rank, which are used in the decision-making process later in the code.
+"""
+                distance = filtered_df['distance'].values[0] if len(filtered_df) > 0 else 0
+                """
+                Retrieve the distance for the current competitor from the filtered DataFrame.
+                If no data is found, default to a distance of 0.
+                """
+
+                rank = filtered_df['rank'].values[0] if len(filtered_df) > 0 else 0
+                """
+                Retrieve the rank for the current competitor from the filtered DataFrame.
+                If no data is found, default to a rank of 0.
+                """
+
+                competitor = next(comp for comp in competitors if comp.id == competitor_id)
+                """
+                Find the competitor object from the `competitors` list that matches the current competitor ID.
+                """
+
+                alignment = competitor.alignment
+                """
+                Extract the alignment score (or attribute) of the current competitor.
+                """
+
+                odds = markets[self.exchange][competitor_id]['backs']['best'] if markets[self.exchange][competitor_id]['backs']['n'] > 0 else markets[self.exchange][competitor_id]['backs']['worst']
+                """
+                Fetch the odds for the current competitor from the market state.
+                If there are available back bets, get the best odds, otherwise, get the worst odds.
+                """
+
+                decision = self.make_decision(time, 15, distance, rank + 1, odds, alignment)
+                """
+                Make a decision on whether to place a bet based on various factors including
+                time, distance, rank, odds, and alignment.
+                """
+
+                if decision == 1:  # Decision = back
+                    """
+                    If the decision is to 'back' the competitor (i.e., place a bet that they will win),
+                    execute the following block of code.
+                    """
+                    if markets[self.exchange][competitor_id]['backs']['n'] > 0:
+                        """
+                        If there are available back bets, determine the odds for the bet.
+                        """
+                        quoteodds = max(MIN_ODDS, markets[self.exchange][competitor_id]['backs']['best'] - 0.1)
+                        """
+                        Set the quote odds to the best available odds minus a small adjustment (0.1),
+                        ensuring the odds don't go below a minimum threshold (`MIN_ODDS`).
+                        """
+                    else:
+                        quoteodds = markets[self.exchange][competitor_id]['backs']['worst']
+                        """
+                        If no back bets are available, use the worst odds instead.
+                        """
+
+                    order = Order(self.exchange, self.id, competitor_id, 'Back', quoteodds,
+                                  random.randint(self.stakeLower, self.stakeHigher),
+                                  markets[self.exchange][competitor_id]['QID'], time)
+                    """
+                    Create a new `Order` object to represent the back bet with the determined odds,
+                    a random stake between `self.stakeLower` and `self.stakeHigher`, and other relevant data.
+                    """
+
+                    if order.direction == 'Back':
+                        """
+                        If the order's direction is 'Back', calculate the total liability for the bet.
+                        """
+                        liability = self.amountFromOrders + order.stake
+                        """
+                        Calculate the new liability by adding the order stake to the existing liabilities.
+                        """
+                        if liability > self.balance:
+                            """
+                            If the total liability exceeds the available balance, skip placing the bet.
+                            """
+                            continue
                         else:
-                            quoteodds = markets[self.exchange][competitor_id]['backs']['worst']
+                            self.orders.append(order)
+                            """
+                            Otherwise, add the new order to the list of orders.
+                            """
+                            self.amountFromOrders = liability
+                            """
+                            Update the total liability with the new value.
+                            """
+                            self.bets_placed += 1
+                            """
+                            Increment the count of bets placed by 1.
+                            """
 
-                        order = Order(self.exchange, self.id, competitor_id, 'Back', quoteodds,
-                                      random.randint(self.stakeLower, self.stakeHigher),
-                                      markets[self.exchange][competitor_id]['QID'], time)
+                elif decision == 0:  # Decision = lay
+                    """
+                    If the decision is to 'lay' the competitor (i.e., bet that they will lose),
+                    execute the following block of code.
+                    """
+                    if markets[self.exchange][competitor_id]['lays']['n'] > 0:
+                        """
+                        If there are available lay bets, determine the odds for the lay bet.
+                        """
+                        quoteodds = markets[self.exchange][competitor_id]['lays']['best'] + 0.1
+                        """
+                        Set the quote odds to the best available lay odds plus a small adjustment (0.1).
+                        """
+                    else:
+                        quoteodds = markets[self.exchange][competitor_id]['lays']['worst']
+                        """
+                        If no lay bets are available, use the worst odds instead.
+                        """
 
-                        if order.direction == 'Back':
-                            liability = self.amountFromOrders + order.stake
-                            if liability > self.balance:
-                                continue
-                            else:
-                                self.orders.append(order)
-                                self.amountFromOrders = liability
-                                self.bets_placed += 1
+                    order = Order(self.exchange, self.id, competitor_id, 'Lay', quoteodds,
+                                  random.randint(self.stakeLower, self.stakeHigher),
+                                  markets[self.exchange][competitor_id]['QID'], time)
+                    """
+                    Create a new `Order` object to represent the lay bet with the determined odds,
+                    a random stake between `self.stakeLower` and `self.stakeHigher`, and other relevant data.
+                    """
 
-                    elif decision == 0:  # Decision = lay
-                        if markets[self.exchange][competitor_id]['lays']['n'] > 0:
-                            quoteodds = markets[self.exchange][competitor_id]['lays']['best'] + 0.1
+                    if order.direction == 'Lay':
+                        """
+                        If the order's direction is 'Lay', calculate the total liability for the bet.
+                        """
+                        liability = self.amountFromOrders + ((order.stake * order.odds) - order.stake)
+                        """
+                        Calculate the new liability for the lay bet, which is calculated differently from a back bet.
+                        """
+                        if liability > self.balance:
+                            """
+                            If the total liability exceeds the available balance, skip placing the bet.
+                            """
+                            continue
                         else:
-                            quoteodds = markets[self.exchange][competitor_id]['lays']['worst']
+                            self.orders.append(order)
+                            """
+                            Otherwise, add the new order to the list of orders.
+                            """
+                            self.amountFromOrders = liability
+                            """
+                            Update the total liability with the new value.
+                            """
+                            self.bets_placed += 1
+                            """
+                            Increment the count of bets placed by 1.
+                            """
 
-                        order = Order(self.exchange, self.id, competitor_id, 'Lay', quoteodds,
-                                      random.randint(self.stakeLower, self.stakeHigher),
-                                      markets[self.exchange][competitor_id]['QID'], time)
-
-                        if order.direction == 'Lay':
-                            liability = self.amountFromOrders + ((order.stake * order.odds) - order.stake)
-                            if liability > self.balance:
-                                continue
-                            else:
-                                self.orders.append(order)
-                                self.amountFromOrders = liability
-                                self.bets_placed += 1
-
-        except Exception as e:
-            raise e
+    except Exception as e:
+        """
+        If any exception occurs during the execution of this method,
+        catch it and raise the exception to be handled elsewhere.
+        """
+        raise e
 
