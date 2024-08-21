@@ -1551,7 +1551,7 @@ def respond(self, time, markets, trade, competitors, agent_distances):
             `sortedComps` is a list of tuples with competitor IDs and their corresponding distances.
             """
 
-            for rank, (competitor_id, distance) in enumerate(sortedComps):
+            for rank, (competitor_id, distance) in enumerate(sortedComps): #this logic is emulating the logic that getXGBoostTrainData uses to extraxt distance and rank data.
                 """
                 Iterate over the sorted competitors.
                 `rank` is the competitor's rank (starting from 0).
