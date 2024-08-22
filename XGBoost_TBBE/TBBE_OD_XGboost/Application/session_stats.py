@@ -395,46 +395,63 @@ def getBalance(bettingAgents):
 
 # Modified getXGboostTrainData Function
 def getXGboostTrainData(trades, simId, bettingAgents, agentDistances, competitors):
+    # Get the current balance of all betting agents
     balances = getBalance(bettingAgents)
 
-    # Compute the ranks for each competitor and time
+    # Compute the rank of each competitor for every time point
+    # Ranking is based on the distance, with higher distances getting a better rank (lower number)
     agentDistances['rank'] = agentDistances.groupby('time')['distance'].rank(ascending=False, method='first').astype(int)
-    print(agentDistances)
+    print(agentDistances)  # Debugging output to verify the calculated ranks
+
+    # Define the new header for the CSV file that will store the training data
     new_header = ["type", "time", "exchange", "competitor", "odds", "agentID", "decision", "stake", "balance", "distance", "rank", "alignment"]
+
+    # Initialize an empty list to store the processed rows that will be written to the CSV file
     tape = []
 
-    # Calculate alignment for each competitor
+    # Calculate the alignment score for each competitor
     for competitor in competitors:
         competitor.alignment = competitor.calculateAlignment()
 
+    # Iterate through each trade in the list of trades
     for val in trades:
-        competitor_id = val["competitor"]
-        time = val["time"]
+        competitor_id = val["competitor"]  # Get the competitor ID for the current trade
+        time = val["time"]  # Get the time of the current trade
 
-        epsilon = 1e-1
-        mask = (agentDistances['competitor'] == competitor_id) & (abs(agentDistances['time'] - time) < epsilon)
+        # Use a small epsilon to account for floating-point precision when comparing times
+        tolerance = 1e-1
+
+        # Filter the agentDistances dataframe to find the entry corresponding to the current competitor and time
+        mask = (agentDistances['competitor'] == competitor_id) & (abs(agentDistances['time'] - time) < tolerance)
         filtered_df = agentDistances[mask]
+
+        # Extract the distance and rank for the current competitor at the given time
         distance = filtered_df['distance'].values[0] if len(filtered_df) > 0 else 0
         rank = filtered_df['rank'].values[0] if len(filtered_df) > 0 else 0
 
-        # Retrieve the alignment score for the current competitor
+        # Retrieve the alignment score for the current competitor from the competitors list
         competitor = next(comp for comp in competitors if comp.id == competitor_id)
         alignment = competitor.alignment
 
-        # For backer   
+        # Create a row for the backer with all relevant data, including balance, distance, rank, and alignment
         backer_balance = balances[val["backer"]]
         backer_row = [val["type"], val["time"], val["exchange"], val["competitor"], val["odds"], val["backer"], "backer", val["stake"], backer_balance, distance, rank, alignment]
         tape.append(backer_row)
-        # For layer
+
+        # Create a row for the layer with all relevant data, including balance, distance, rank, and alignment
         layer_balance = balances[val["layer"]]
         layer_row = [val["type"], val["time"], val["exchange"], val["competitor"], val["odds"], val["layer"], "layer", val["stake"], layer_balance, distance, rank, alignment]
         tape.append(layer_row)
 
+    # Define the filename for the CSV file where the training data will be saved
     fileName = "getXGboostTrainingData_" + str(simId) + ".csv"
+
+    # Open the CSV file for writing and write the header and all collected rows (tape)
     with open(fileName, 'w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(new_header)
-        writer.writerows(tape)
+        writer.writerow(new_header)  # Write the header row
+        writer.writerows(tape)  # Write all the processed rows
+
 
 # Modified createstats Function
 def createstats(bettingAgents, simId, trades, priceHistory, spreadHistory, AgentDistance, competitors):
