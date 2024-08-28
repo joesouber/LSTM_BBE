@@ -1452,7 +1452,8 @@ class LSTMBettingAgent(BettingAgent):
                          local_opinion, uncertainty, lower_op_bound, upper_op_bound)
         self.lstm_loaded_model = load_model('/content/drive/MyDrive/greece_ablation/baseline/trained_lstm_model_baseline_greece.h5')
         self.scaler = joblib.load('/content/drive/MyDrive/greece_ablation/align_minmaxscaler_newgreece.pkl')
-        self.bettingInterval = 1
+        # can change these presets such as betting interval and time back to same as XGBoost logic if need be or agent playing up.
+        self.bettingInterval = 1 
         self.bettingTime = 0 #random.randint(5, 15)
         self.name = 'LSTMBettingAgent'
         self.bets_placed = 0  # Initialize a counter for bets placed
