@@ -1574,11 +1574,10 @@ def respond(self, time, markets, trade, competitors, agent_distances):
                 Apply the mask to filter the `agent_distances` DataFrame for the current competitor.
                 """
 
-"""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 Purpose of the boolean mask I have introduced is it selects only the rows where both conditions are True — that is, the rows where the competitor ID matches the current competitor_id, and the time is very close to the given time.
-
 This filtered DataFrame (filtered_df) is then used to extract specific values, such as the competitor's distance and rank, which are used in the decision-making process later in the code.
-"""
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
                 distance = filtered_df['distance'].values[0] if len(filtered_df) > 0 else 0
                 """
                 Retrieve the distance for the current competitor from the filtered DataFrame.
