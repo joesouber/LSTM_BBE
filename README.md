@@ -6,6 +6,8 @@ It is the extended version from A XGBoost-Agent Based model (https://github.com/
 
 This version integrated an agent called LSTMBettingAgent to the original 'betting_agents.py' file in the Application folder. This agent uses the models trained from (https://github.com/joesouber/DeepLearningBBE_modeltraining/tree/main) to make the prediction. Moreover, this version also adapted a function called 'getXGboostTrainData' to 'session_stats.py' file to collects/gather data for LSTM model training. 
 
+"createcores" and "launch8cores" are files that can be adjusted for your needs. They implement a parallel processing procedure accross avaliable CPU cores.
+
 Basic steps for running the BBE (Bristol Betting Exchange): 
 1. In config.py -> Initialize the agents list. Below is the example of agents list:
    agents = [('Agent_Opinionated_Random', 10), ('Agent_Opinionated_Leader_Wins', 10),
