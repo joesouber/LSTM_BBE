@@ -1,4 +1,4 @@
-# XGBoost_TBBE
+# LSTM_BBE
 
 ### This is code for An LSTM-Agent-Based model for In-Play Betting on a Sports Betting Exchange dissertation 
 
